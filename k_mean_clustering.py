@@ -10,7 +10,7 @@ from argparse import ArgumentParser
 def get_cluster_kmeans(corpus, num_clusters, model_name):
 
     embedder = SentenceTransformer(model_name)
-    corpus_embeddings = embedder.encode(corpus, batch_size=128, convert_to_numpy=True, show_progress_bar=True)
+    corpus_embeddings = embedder.encode(corpus, batch_size=512, convert_to_numpy=True, show_progress_bar=True)
 
     # clustering_model = KMeans(n_clusters=num_clusters, random_state=random_state)
     clustering_model = KMeans(n_clusters=num_clusters)
