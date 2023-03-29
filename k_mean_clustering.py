@@ -1,22 +1,27 @@
 import os
 import re
+import multiprocessing
 from KoBERTScore import BERTScore
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, MiniBatchKMeans
 from transformers import BertModel, AutoModel, AutoTokenizer
 from sentence_transformers import SentenceTransformer
 from argparse import ArgumentParser
 
 
-def get_cluster_kmeans(corpus, num_clusters, model_name):
+def get_cluster_kmeans(corpus, num_clusters, num_cores, model_name):
 
     embedder = SentenceTransformer(model_name)
-    corpus_embeddings = embedder.encode(corpus, batch_size=512, convert_to_numpy=True, show_progress_bar=True)
+    corpus_embeddings = embedder.encode(corpus, batch_size=1024, convert_to_numpy=True, show_progress_bar=True)
 
     # clustering_model = KMeans(n_clusters=num_clusters, random_state=random_state)
-    clustering_model = KMeans(n_clusters=num_clusters)
+    # clustering_model = KMeans(n_clusters=num_clusters, verbose=1)
+    clustering_model = MiniBatchKMeans(n_clusters=num_clusters, verbose=1, batch_size=256*num_cores)
+    print(f"Start clustering... with {num_cores} cores")
     clustering_model.fit(corpus_embeddings)
 
     cluster_assignment = clustering_model.labels_
+
+    print("End clustering...")
 
     clustered_sentences = [[] for i in range(num_clusters)]
     for sentence_id, cluster_id in enumerate(cluster_assignment):
@@ -40,6 +45,7 @@ def main():
     args = parser.parse_args()
 
     num_clusters = args.num_clusters
+    num_cores = multiprocessing.cpu_count() - 4
     model_name = "beomi/kcbert-base"
 
     # read file
@@ -63,7 +69,9 @@ def main():
 
     num_clusters = min(num_clusters, len(utterances))
     print(f"num_clusters: {num_clusters}")
-    clustered_sentences = get_cluster_kmeans(corpus=utterances, num_clusters=num_clusters, model_name=model_name)
+    clustered_sentences = get_cluster_kmeans(
+        corpus=utterances, num_clusters=num_clusters, num_cores=num_cores, model_name=model_name
+    )
 
     for c_idx in range(num_clusters):
         print(f"{c_idx} / {num_clusters}")
