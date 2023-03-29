@@ -50,7 +50,7 @@ def main():
 
     # read file
     num_tabs = 2
-    utterances = []
+    utterances = set()
     data_dir = "./data/"
     input_file = "text_call.tsv"
     with open(os.path.join(data_dir, input_file), "r", encoding="utf-8") as f:
@@ -65,12 +65,13 @@ def main():
                 continue
             else:
                 utterance = utterance[re_matched.span()[-1]:].strip()
-                utterances.append(utterance)
+                # TODO: normalize utterance
+                utterances.add(utterance)
 
     num_clusters = min(num_clusters, len(utterances))
     print(f"num_clusters: {num_clusters}")
     clustered_sentences = get_cluster_kmeans(
-        corpus=utterances, num_clusters=num_clusters, num_cores=num_cores, model_name=model_name
+        corpus=list(utterances), num_clusters=num_clusters, num_cores=num_cores, model_name=model_name
     )
 
     for c_idx in range(num_clusters):
