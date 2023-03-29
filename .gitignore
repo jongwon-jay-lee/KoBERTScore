@@ -13,3 +13,5 @@ __pycache__
 
 # Ipython notebook
 .check_points
+
+.idea
