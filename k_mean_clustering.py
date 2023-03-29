@@ -4,7 +4,7 @@ from KoBERTScore import BERTScore
 from sklearn.cluster import KMeans
 from transformers import BertModel, AutoModel, AutoTokenizer
 from sentence_transformers import SentenceTransformer
-
+from argparse import ArgumentParser
 
 def get_cluster_kmeans(corpus, num_clusters, model_name):
 
@@ -34,6 +34,13 @@ def get_cluster_kmeans(corpus, num_clusters, model_name):
 
 
 def main():
+    parser = ArgumentParser()
+    parser.add_argument("--num_clusters", default=10, type=int)
+    args = parser.parse_args()
+
+    num_clusters = args.num_clusters
+    model_name = "beomi/kcbert-base"
+
     # read file
     num_tabs = 2
     utterances = []
@@ -50,8 +57,6 @@ def main():
             utterance = utterance[re_matched.span()[-1]:].strip()
             utterances.append(utterance)
 
-    model_name = "beomi/kcbert-base"
-    num_clusters = 4
     num_clusters = min(num_clusters, len(utterances))
     print(f"num_clusters: {num_clusters}")
     clustered_sentences = get_cluster_kmeans(corpus=utterances, num_clusters=num_clusters, model_name=model_name)

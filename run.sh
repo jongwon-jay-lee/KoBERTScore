@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICE=7 python k_mean_clustring.py --num_clusters=1000
