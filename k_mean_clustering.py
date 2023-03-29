@@ -1,5 +1,6 @@
 import os
 import re
+import torch
 import multiprocessing
 from KoBERTScore import BERTScore
 from sklearn.cluster import KMeans, MiniBatchKMeans
@@ -10,7 +11,9 @@ from argparse import ArgumentParser
 
 def get_cluster_kmeans(corpus, num_clusters, num_cores, model_name):
 
-    embedder = SentenceTransformer(model_name)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    embedder = SentenceTransformer(model_name, device=device)
     corpus_embeddings = embedder.encode(corpus, batch_size=1024, convert_to_numpy=True, show_progress_bar=True)
 
     # clustering_model = KMeans(n_clusters=num_clusters, random_state=random_state)
