@@ -9,9 +9,19 @@ from sentence_transformers import SentenceTransformer
 from argparse import ArgumentParser
 
 
+ALLOCATED_GPUS = None
+
+
 def get_cluster_kmeans(corpus, num_clusters, num_cores, model_name):
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if "CUDA_VISIBLE_DEVICES" in os.environ and os.environ["CUDA_VISIBLE_DEVICES"]:
+        global ALLOCATED_GPUS
+        ALLOCATED_GPUS = str(os.environ["CUDA_VISIBLE_DEVICES"]).split(",")[0]
+        ALLOCATED_GPUS = ":" + ALLOCATED_GPUS
+    else:
+        ALLOCATED_GPUS = ""
+
+    device = f"cuda{ALLOCATED_GPUS}" if torch.cuda.is_available() else "cpu"
 
     embedder = SentenceTransformer(model_name, device=device)
     corpus_embeddings = embedder.encode(corpus, batch_size=1024, convert_to_numpy=True, show_progress_bar=True)
