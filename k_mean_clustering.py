@@ -54,9 +54,12 @@ def main():
             assert len(line_split) == num_tabs, f"line #{l_idx}: {line} [TAB] ill-formatted"
             utterance = line_split[-1].strip()
             re_matched = re.match(r"SPK(\d+)* ", utterance)
-            assert re_matched, f"line #{l_idx}: {line} [SPK] ill-formatted"
-            utterance = utterance[re_matched.span()[-1]:].strip()
-            utterances.append(utterance)
+            if re_matched is None:
+                print(f"line #{l_idx}: {line} [SPK] ill-formatted")
+                continue
+            else:
+                utterance = utterance[re_matched.span()[-1]:].strip()
+                utterances.append(utterance)
 
     num_clusters = min(num_clusters, len(utterances))
     print(f"num_clusters: {num_clusters}")
