@@ -57,6 +57,7 @@ def main():
     parser = ArgumentParser()
     parser.add_argument("--num_clusters", default=10, type=int)
     parser.add_argument("--data_dir", default="./data/", type=str)
+    parser.add_argument("--input_file", default="text_call.tsv", type=str)
     parser.add_argument("--output_dir", default="outputs", type=str)
     args = parser.parse_args()
 
@@ -67,8 +68,7 @@ def main():
     # read file
     num_tabs = 2
     utterances = set()
-    input_file = "text_call.tsv"
-    with open(os.path.join(args.data_dir, input_file), "r", encoding="utf-8") as f:
+    with open(os.path.join(args.data_dir, args.input_file), "r", encoding="utf-8") as f:
         for l_idx, line in enumerate(f):
             line = line.strip()
             line_split = line.split("\t")
