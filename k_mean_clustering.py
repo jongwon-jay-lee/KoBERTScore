@@ -56,6 +56,7 @@ def get_cluster_kmeans(corpus, num_clusters, num_cores, model_name):
 def main():
     parser = ArgumentParser()
     parser.add_argument("--num_clusters", default=10, type=int)
+    parser.add_argument("--output_dir", default="outputs", type=str)
     args = parser.parse_args()
 
     num_clusters = args.num_clusters
@@ -88,9 +89,12 @@ def main():
         corpus=list(utterances), num_clusters=num_clusters, num_cores=num_cores, model_name=model_name
     )
 
+    output_path = os.path.join(args.data_dir, args.output_dir)
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
     for c_idx in range(num_clusters):
         print(f"{c_idx} / {num_clusters}")
-        with open(os.path.join(data_dir, f"{c_idx}.txt"), "w", encoding="utf-8") as out_f:
+        with open(os.path.join(output_path, f"{c_idx}.txt"), "w", encoding="utf-8") as out_f:
             for sent in clustered_sentences[c_idx]:
                 out_f.write(f"{sent}\n")
 
