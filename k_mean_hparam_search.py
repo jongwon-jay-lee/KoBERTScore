@@ -1,7 +1,12 @@
 import os
 import re
+
+import numpy as np
 import torch
 import multiprocessing
+
+from sklearn.metrics import silhouette_score
+
 from KoBERTScore import BERTScore
 from sklearn.cluster import KMeans, MiniBatchKMeans
 from transformers import BertModel, AutoModel, AutoTokenizer
@@ -11,13 +16,53 @@ from argparse import ArgumentParser
 ALLOCATED_GPUS = None
 
 
-def visualize_elbow(corpus_embeddings, num_cores, min_cluster=1000, max_cluster=5000):
+def iterative_cluster(corpus_embeddings, num_cores, min_cluster=10000, max_cluster=100000, interval=10000):
+
+    inertia_list = []
+    silhouette_list = []
+    for i in range(min_cluster, max_cluster, interval):
+        cluster_model = MiniBatchKMeans(n_clusters=i, verbose=1, batch_size=256*num_cores, random_state=0)
+        cluster_labels = cluster_model.fit_predict(corpus_embeddings)
+        # scores
+        inertia_list.append([i, cluster_model.inertia_])
+        print(i, cluster_model.inertia_)
+        silhouette_avg = silhouette_score(corpus_embeddings, cluster_labels)
+        silhouette_list.append([i, silhouette_avg])
+        print(i, silhouette_avg)
+
+    return inertia_list, silhouette_list
+
+
+def visualize_elbow(corpus_embeddings, num_cores, min_cluster=10000, max_cluster=50000, interval=10000):
     distortions = []
-    for i in range(min_cluster, max_cluster):
+    for i in range(min_cluster, max_cluster, interval):
         clustering_model = MiniBatchKMeans(n_clusters=i, verbose=1, batch_size=256 * num_cores)
         clustering_model.fit(corpus_embeddings)
         distortions.append(clustering_model.inertia_)
     return distortions
+
+
+def visualize_silhouette_layer(corpus_embeddings, num_cores, min_cluster=10000, max_cluster=50000, interval=10000):
+
+    results = []
+
+    for i in range(min_cluster, max_cluster, interval):
+        clustering_model = MiniBatchKMeans(n_clusters=i, verbose=1, batch_size=256 * num_cores)
+        cluster_labels = clustering_model.fit_predict(corpus_embeddings)
+        silhouette_avg = silhouette_score(corpus_embeddings, cluster_labels)
+        results.append([i, silhouette_avg])
+
+    # for print
+    best_cluster = -1
+    best_score = -1.
+    for n_cluster, score in results:
+        if score > best_score:
+            best_cluster = n_cluster
+            best_score = score
+
+    print(best_cluster, best_score)
+
+    return results
 
 
 def get_cluster_kmeans(corpus, num_cores, model_name):
@@ -27,8 +72,9 @@ def get_cluster_kmeans(corpus, num_cores, model_name):
     embedder = SentenceTransformer(model_name, device=device)
     corpus_embeddings = embedder.encode(corpus, batch_size=1024, convert_to_numpy=True, show_progress_bar=True)
 
-    distortions = visualize_elbow(corpus_embeddings, num_cores)
-    return distortions
+    elbow, silhouette = iterative_cluster(corpus_embeddings, num_cores,
+                                          min_cluster=10000, max_cluster=100000, interval=10000)
+    return elbow, silhouette
 
 
 def main():
@@ -63,7 +109,8 @@ def main():
 
     num_clusters = min(num_clusters, len(utterances))
     print(f"num_clusters: {num_clusters}")
-    distortions = get_cluster_kmeans(
+
+    distortions, silhouettes = get_cluster_kmeans(
         corpus=list(utterances), num_cores=num_cores, model_name=model_name
     )
 
@@ -72,8 +119,12 @@ def main():
         os.makedirs(output_path)
 
     with open(os.path.join(output_path, "distortion.txt"), "w", encoding="utf-8") as out_f:
-        for distortion in distortions:
-            out_f.write(f"{distortion}\n")
+        for i, distortion in distortions:
+            out_f.write(f"{i}\t{distortion}\n")
+
+    with open(os.path.join(output_path, "silhouette.txt"), "w", encoding="utf-8") as out_f:
+        for i, silhouette in silhouettes:
+            out_f.write(f"{i}\t{silhouette}\n")
 
 
 if __name__ == "__main__":
