@@ -1,1 +1,1 @@
-CUDA_VISIBLE_DEVICES=5 python k_mean_clustering.py --num_clusters=1000
+CUDA_VISIBLE_DEVICES=5 python k_mean_clustering.py --min_cluster=1000 --max_cluster=10000 --interval=1000
