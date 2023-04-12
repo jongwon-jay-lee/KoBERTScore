@@ -48,7 +48,7 @@ def get_cluster_kmeans(corpus, num_clusters, num_cores, model_name):
 
     distances = [[] for i in range(num_clusters)]
     for i in range(num_clusters):
-        distances.append(euclidean_distances(clustered_vectors[i], list(cluster_centers[i])))
+        distances.append(euclidean_distances(clustered_vectors[i], [cluster_centers[i]]))
 
     top_k_dist = 5
     top_repr_indices = [[] for i in range(num_clusters)]
