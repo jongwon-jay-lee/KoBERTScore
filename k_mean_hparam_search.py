@@ -65,7 +65,7 @@ def visualize_silhouette_layer(corpus_embeddings, num_cores, min_cluster=10000, 
     return results
 
 
-def get_cluster_kmeans(corpus, num_cores, model_name):
+def get_cluster_kmeans(corpus, num_cores, model_name, min_cluster, max_cluster, interval):
 
     device = f"cuda" if torch.cuda.is_available() else "cpu"
 
@@ -73,7 +73,7 @@ def get_cluster_kmeans(corpus, num_cores, model_name):
     corpus_embeddings = embedder.encode(corpus, batch_size=1024, convert_to_numpy=True, show_progress_bar=True)
 
     elbow, silhouette = iterative_cluster(corpus_embeddings, num_cores,
-                                          min_cluster=10000, max_cluster=100000, interval=10000)
+                                          min_cluster=min_cluster, max_cluster=max_cluster, interval=interval)
     return elbow, silhouette
 
 
@@ -83,6 +83,9 @@ def main():
     parser.add_argument("--data_dir", default="./data/", type=str)
     parser.add_argument("--input_file", default="text_call.tsv", type=str)
     parser.add_argument("--output_dir", default="outputs", type=str)
+    parser.add_argument("--min_cluster", default=1000, type=int)
+    parser.add_argument("--max_cluster", default=10000, type=int)
+    parser.add_argument("--interval", default=1000, type=int)
     args = parser.parse_args()
 
     num_clusters = args.num_clusters
@@ -111,7 +114,8 @@ def main():
     print(f"num_clusters: {num_clusters}")
 
     distortions, silhouettes = get_cluster_kmeans(
-        corpus=list(utterances), num_cores=num_cores, model_name=model_name
+        corpus=list(utterances), num_cores=num_cores, model_name=model_name,
+        min_cluster=args.min_cluster, max_cluster=args.max_cluster, interval=args.interval,
     )
 
     output_path = os.path.join(args.data_dir, args.output_dir)
