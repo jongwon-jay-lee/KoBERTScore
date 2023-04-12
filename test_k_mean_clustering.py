@@ -31,7 +31,7 @@ def get_cluster_kmeans(corpus, num_clusters, num_cores, model_name):
 
     # clustering_model = KMeans(n_clusters=num_clusters, random_state=random_state)
     # clustering_model = KMeans(n_clusters=num_clusters, verbose=1)
-    clustering_model = MiniBatchKMeans(n_clusters=num_clusters, verbose=1, batch_size=256*num_cores)
+    clustering_model = MiniBatchKMeans(n_clusters=num_clusters, verbose=1, batch_size=256*num_cores, random_state=12345)
     print(f"Start clustering... with {num_cores} cores")
     clustering_model.fit(corpus_embeddings)
 
@@ -48,7 +48,7 @@ def get_cluster_kmeans(corpus, num_clusters, num_cores, model_name):
 
     distances = [[] for _ in range(num_clusters)]
     for i in range(num_clusters):
-        distances[i] = euclidean_distances(clustered_vectors[i], [cluster_centers[i]])[0]
+        distances[i] = euclidean_distances(clustered_vectors[i], [cluster_centers[i]])
 
     top_k_dist = 5
     top_repr_indices = [[] for _ in range(num_clusters)]
