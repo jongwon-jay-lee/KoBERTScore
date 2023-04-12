@@ -12,7 +12,7 @@ from sklearn.cluster import KMeans, MiniBatchKMeans
 from transformers import BertModel, AutoModel, AutoTokenizer
 from sentence_transformers import SentenceTransformer
 from argparse import ArgumentParser
-
+from matplotlib import pyplot as plt
 ALLOCATED_GPUS = None
 
 
@@ -34,12 +34,12 @@ def iterative_cluster(corpus_embeddings, num_cores, min_cluster=10000, max_clust
 
 
 def visualize_elbow(corpus_embeddings, num_cores, min_cluster=10000, max_cluster=50000, interval=10000):
-    distortions = []
-    for i in range(min_cluster, max_cluster, interval):
-        clustering_model = MiniBatchKMeans(n_clusters=i, verbose=1, batch_size=256 * num_cores)
+    sse = []
+    for n_cluster in range(min_cluster, max_cluster, interval):
+        clustering_model = MiniBatchKMeans(n_clusters=n_cluster, verbose=1, batch_size=256 * num_cores)
         clustering_model.fit(corpus_embeddings)
-        distortions.append(clustering_model.inertia_)
-    return distortions
+        sse.append([n_cluster, clustering_model.inertia_])
+    return sse
 
 
 def visualize_silhouette_layer(corpus_embeddings, num_cores, min_cluster=10000, max_cluster=50000, interval=10000):
@@ -65,16 +65,12 @@ def visualize_silhouette_layer(corpus_embeddings, num_cores, min_cluster=10000, 
     return results
 
 
-def get_cluster_kmeans(corpus, num_cores, model_name, min_cluster, max_cluster, interval):
+def get_corpus_embeddings(corpus, model_name):
 
     device = f"cuda" if torch.cuda.is_available() else "cpu"
-
     embedder = SentenceTransformer(model_name, device=device)
     corpus_embeddings = embedder.encode(corpus, batch_size=1024, convert_to_numpy=True, show_progress_bar=True)
-
-    elbow, silhouette = iterative_cluster(corpus_embeddings, num_cores,
-                                          min_cluster=min_cluster, max_cluster=max_cluster, interval=interval)
-    return elbow, silhouette
+    return corpus_embeddings
 
 
 def main():
@@ -83,9 +79,11 @@ def main():
     parser.add_argument("--data_dir", default="./data/", type=str)
     parser.add_argument("--input_file", default="text_call.tsv", type=str)
     parser.add_argument("--output_dir", default="outputs", type=str)
+    parser.add_argument("--bsz", default=2048, type=str)
     parser.add_argument("--min_cluster", default=1000, type=int)
     parser.add_argument("--max_cluster", default=10000, type=int)
     parser.add_argument("--interval", default=1000, type=int)
+    parser.add_argument("--has_silhouette", action="store_true")
     args = parser.parse_args()
 
     num_clusters = args.num_clusters
@@ -113,22 +111,44 @@ def main():
     num_clusters = min(num_clusters, len(utterances))
     print(f"num_clusters: {num_clusters}")
 
-    distortions, silhouettes = get_cluster_kmeans(
-        corpus=list(utterances), num_cores=num_cores, model_name=model_name,
-        min_cluster=args.min_cluster, max_cluster=args.max_cluster, interval=args.interval,
+    corpus_embeddings = get_corpus_embeddings(corpus=list(utterances), model_name=model_name)
+
+    sse = visualize_elbow(
+        corpus_embeddings,
+        num_cores,
+        min_cluster=args.min_cluster,
+        max_cluster=args.max_cluster,
+        interval=args.interval
     )
+
+    # plotting as fig
+    _range, _sse = zip(*sse)
+    plt.plot(_range, _sse, marker='o')
+    plt.xlabel("n_cluster")
+    plt.ylabel("sse")
+    # plt.show()
 
     output_path = os.path.join(args.data_dir, args.output_dir)
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
     with open(os.path.join(output_path, "distortion.txt"), "w", encoding="utf-8") as out_f:
-        for i, distortion in distortions:
-            out_f.write(f"{i}\t{distortion}\n")
+        for i, _sse in sse:
+            out_f.write(f"{i}\t{_sse}\n")
 
-    with open(os.path.join(output_path, "silhouette.txt"), "w", encoding="utf-8") as out_f:
-        for i, silhouette in silhouettes:
-            out_f.write(f"{i}\t{silhouette}\n")
+    plt.savefig(os.path.join(output_path, "fig.png"))
+
+    if args.has_silhouette:
+        silhouettes = visualize_silhouette_layer(
+            corpus_embeddings,
+            num_cores,
+            min_cluster=args.min_cluster,
+            max_cluster=args.max_cluster,
+            interval=args.interval
+        )
+        with open(os.path.join(output_path, "silhouette.txt"), "w", encoding="utf-8") as out_f:
+            for i, silhouette in silhouettes:
+                out_f.write(f"{i}\t{silhouette}\n")
 
 
 if __name__ == "__main__":
