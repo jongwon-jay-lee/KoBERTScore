@@ -40,24 +40,27 @@ def get_cluster_kmeans(corpus, num_clusters, num_cores, model_name):
 
     print("End clustering...")
 
-    clustered_sentences = [[] for i in range(num_clusters)]
-    clustered_vectors = [[] for i in range(num_clusters)]
+    clustered_sentences = [[] for _ in range(num_clusters)]
+    clustered_vectors = [[] for _ in range(num_clusters)]
     for sentence_id, cluster_id in enumerate(cluster_assignment):
         clustered_sentences[cluster_id].append(corpus[sentence_id])
         clustered_vectors[cluster_id].append(corpus_embeddings[sentence_id])
 
-    distances = [[] for i in range(num_clusters)]
+    distances = [[] for _ in range(num_clusters)]
     for i in range(num_clusters):
         distances.append(euclidean_distances(clustered_vectors[i], [cluster_centers[i]]))
 
     top_k_dist = 5
-    top_repr_indices = [[] for i in range(num_clusters)]
-    top_repr_sentences = [[] for i in range(num_clusters)]
-    np_clustered_sentences = np.array(clustered_sentences)
+    top_repr_indices = [[] for _ in range(num_clusters)]
+    # np_clustered_sentences = np.array(clustered_sentences)
     for i in range(num_clusters):
         curr_k = min(len(distances[i]), top_k_dist)
         top_repr_indices[i].append(np.argpartition(distances[i], -curr_k)[-curr_k:])
-        top_repr_sentences[i].append(np_clustered_sentences[i][top_repr_indices[i]])
+
+    top_repr_sentences = [[] for _ in range(num_clusters)]
+    for i in range(num_clusters):
+        for idx in top_repr_indices[i]:
+            top_repr_sentences[i].append(clustered_sentences[i][idx])
 
     # sort
     for i in range(num_clusters):
