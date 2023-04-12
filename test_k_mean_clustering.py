@@ -48,14 +48,14 @@ def get_cluster_kmeans(corpus, num_clusters, num_cores, model_name):
 
     distances = [[] for _ in range(num_clusters)]
     for i in range(num_clusters):
-        distances[i].append(euclidean_distances(clustered_vectors[i], [cluster_centers[i]]))
+        distances[i] = euclidean_distances(clustered_vectors[i], [cluster_centers[i]])[0]
 
     top_k_dist = 5
     top_repr_indices = [[] for _ in range(num_clusters)]
     # np_clustered_sentences = np.array(clustered_sentences)
     for i in range(num_clusters):
         curr_k = min(len(distances[i]), top_k_dist)
-        top_repr_indices[i].append(np.argpartition(distances[i], -curr_k)[-curr_k:])
+        top_repr_indices[i].append(np.argpartition(distances[i], curr_k)[-curr_k:])
 
     top_repr_sentences = [[] for _ in range(num_clusters)]
     for i in range(num_clusters):
