@@ -89,7 +89,7 @@ def main():
     args = parser.parse_args()
 
     num_clusters = args.num_clusters
-    num_cores = multiprocessing.cpu_count() - 4
+    num_cores = int(multiprocessing.cpu_count()/2) - 2
     model_name = "beomi/kcbert-base"
 
     # read file
