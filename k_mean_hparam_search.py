@@ -36,7 +36,9 @@ def iterative_cluster(corpus_embeddings, num_cores, min_cluster=10000, max_clust
 def visualize_elbow(corpus_embeddings, num_cores, min_cluster=10000, max_cluster=50000, interval=10000):
     sse = []
     for n_cluster in range(min_cluster, max_cluster, interval):
-        clustering_model = MiniBatchKMeans(n_clusters=n_cluster, verbose=1, batch_size=256 * num_cores)
+        clustering_model = MiniBatchKMeans(
+            n_clusters=n_cluster, verbose=1, batch_size=256 * num_cores, random_state=12345
+        )
         clustering_model.fit(corpus_embeddings)
         sse.append([n_cluster, clustering_model.inertia_])
     return sse
